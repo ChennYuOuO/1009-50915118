@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>記憶大考驗</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 開始遊戲按鈕 -->
+    <div class="start-button-container">
+        <button id="startButton" class="control-button">開始遊戲</button>
+    </div>
+
+<!-- 控制按鈕區域 -->
+<div class="control-buttons" style="display: none;">
+    <select id="switchGroupSelect" class="control-button">
+        <option value="group1">狗狗</option>
+        <option value="group2">梗圖</option>
+    </select>
+
+    <select id="countdownSelect" class="control-button">
+        <option value="5">5 秒</option>
+        <option value="10">10 秒</option>
+        <option value="15">15 秒</option>
+    </select>
+    <select id="gameSizeSelect" class="control-button">
+        <option value="2">2x2</option>
+        <option value="4">4x4</option>
+        <option value="6">6x6</option> 
+    </select>
+    
+    
+    <button id="showFrontButton" class="control-button">全部翻到正面</button>
+    <button id="showBackButton" class="control-button">全部翻到背面</button>
+</div>
+
+
+    <!-- 倒計時顯示 -->
+    <p id="timer" class="timer-display"></p>
+
+      <!-- 遊戲完成時間顯示 -->
+    <p id="completionTime" class="timer-display"></p>
+
+    <!-- 卡片區域 -->
+    <div class="grid-container" id="gameBoard">
+        <!-- 卡片將在按下開始遊戲後生成 -->
+    </div>
+    
+
+    <script>
+        // 定義兩組圖片資料
+        const group1 = [
+    { front: '1.png', back: '18.png', id: 1 },
+    { front: '2.png', back: '18.png', id: 2 },
+    { front: '3.png', back: '18.png', id: 3 },
+    { front: '4.png', back: '18.png', id: 4 },
+    { front: '5.png', back: '18.png', id: 5 },
+    { front: '6.png', back: '18.png', id: 6 },
+    { front: '7.png', back: '18.png', id: 7 },
+    { front: '8.png', back: '18.png', id: 8 },
+];
+
+const group2 = [
+    { front: '10.png', back: '18.png', id: 10 },
+    { front: '11.png', back: '18.png', id: 11 },
+    { front: '12.png', back: '18.png', id: 12 },
+    { front: '13.png', back: '18.png', id: 13 },
+    { front: '14.png', back: '18.png', id: 14 },
+    { front: '15.png', back: '18.png', id: 15 },
+    { front: '16.png', back: '18.png', id: 16 },
+    { front: '17.png', back: '18.png', id: 17 },
+];const group3 = [
+    { front: '9.png', back: '18.png', id: 9 },
+    { front: '19.png', back: '18.png', id: 19 },
+];
+
+
+
+// 新增19.png
+const additionalCard = { front: '19.png', back: '18.png', id: 19 };
+
+// 合併兩組圖片和新增圖片
+const combinedGroup = [...group1, ...group2, additionalCard];
+
+
+        let currentGroup = group1; // 當前使用的圖片組別
+        let countdown; // 倒計時器變量
+        let matchTimer; // 配對計時器變量
+        let totalMatchTime = 0; // 總配對時間
+        let firstCard = null; // 記錄翻開的第一張卡片
+        let secondCard = null; // 記錄翻開的第二張卡片
+        let lockBoard = false; // 鎖定遊戲板防止多次點擊
+        let startTime; // 遊戲開始時間
+    
+        // 隨機打亂數組的函數
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // 生成卡片的函數
+       // 生成卡片的函數
+function createCards(cardData, gameSize) {
+    const gameBoard = document.getElementById('gameBoard');
+    gameBoard.innerHTML = ''; // 清空之前的卡片
+    gameBoard.setAttribute('data-size', gameSize); // 設置數據屬性以控制 CSS
+
+    let selectedCards;
+
+    if (gameSize === '2') {
+        selectedCards = shuffle([...cardData]).slice(0, 2); // 隨機選擇兩張圖片
+    } else if (gameSize === '4') {
+        selectedCards = cardData.slice(0, 8); // 4x4遊戲，取前8張圖片
+    } else if (gameSize === '6') {
+        // 合併 group1、group2 和 group3
+        const combinedGroup = [...group1, ...group2, ...group3]; // 將三組圖片合併
+        selectedCards = shuffle(combinedGroup).slice(0, 18); // 隨機選擇18張圖片
+    }
+
+    const pairedCards = [...selectedCards, ...selectedCards]; // 每種圖片複製一份形成配對
+    const shuffledCards = shuffle(pairedCards); // 將卡片順序打亂
+
+    // 生成卡片並顯示在頁面上
+    shuffledCards.forEach(card => {
+        const cardContainer = document.createElement('div');
+        cardContainer.classList.add('card-container');
+
+        const cardElement = document.createElement('div');
+        cardElement.classList.add('card');
+        cardElement.dataset.id = card.id; // 將卡片 ID 保存到數據屬性中
+
+        const cardFront = document.createElement('div');
+        cardFront.classList.add('card-front');
+        const frontImg = document.createElement('img');
+        frontImg.src = card.front;
+        cardFront.appendChild(frontImg);
+
+        const cardBack = document.createElement('div');
+        cardBack.classList.add('card-back');
+        const backImg = document.createElement('img');
+        backImg.src = card.back;
+        cardBack.appendChild(backImg);
+
+        cardElement.appendChild(cardFront);
+        cardElement.appendChild(cardBack);
+        cardContainer.appendChild(cardElement);
+        gameBoard.appendChild(cardContainer);
+
+        // 點擊卡片翻轉效果並觸發配對邏輯
+        cardElement.addEventListener('click', flipCard);
+    });
+
+    // 顯示按鈕
+    document.querySelector('.control-buttons').style.display = 'flex';
+
+    // 記錄遊戲開始時間
+    startTime = new Date();
+
+    // 確保顯示配對計時器
+    document.getElementById('completionTime').style.display = 'block'; // 确保计时器可见
+
+    // 開始倒計時
+    startCountdown();
+}
+
+
+
+
+        // 翻轉卡片的函數
+        function flipCard() {
+            if (lockBoard) return; // 如果遊戲板被鎖定，則不允許點擊
+            if (this === firstCard) return; // 防止雙擊同一張卡
+
+            // 只有當卡片處於背面（有 'flip' 類名）時才允許翻轉
+            if (this.classList.contains('flip')) {
+                this.classList.remove('flip'); // 翻轉卡片到正面
+
+                if (!firstCard) {
+                    firstCard = this; // 如果沒有翻開的卡片，則記錄這次翻開的卡片
+                } else {
+                    secondCard = this; // 第二次翻開的卡片
+                    lockBoard = true; // 鎖定遊戲板，防止短時間內進行多次點擊
+                    setTimeout(checkForMatch, 150); // 減少延遲，讓反應更快
+                }
+            }
+        }
+
+       // 定義音效
+const successSound = new Audio('https://www.soundjay.com/buttons/button-6.mp3');
+const failSound = new Audio('https://www.soundjay.com/buttons/button-4.mp3');
+
+// 檢查兩張卡片是否配對的函數
+// 檢查兩張卡片是否配對的函數
+function checkForMatch() {
+    const isMatch = firstCard.dataset.id === secondCard.dataset.id; // 比較兩張卡片的 ID
+
+    if (isMatch) {
+        successSound.play();  // 播放配對成功的音效
+        hideCards(); // 隱藏已配對的卡片
+        disableCards();
+    } else {
+        failSound.play();  // 播放配對失敗的音效
+        unflipCards();
+    }
+}
+
+// 隱藏配對成功的卡片
+function hideCards() {
+    firstCard.style.visibility = 'hidden'; // 隱藏第一張卡片
+    secondCard.style.visibility = 'hidden'; // 隱藏第二張卡片
+}
+
+function checkAllCardsFlipped() {
+    const allFlipped = [...document.querySelectorAll('.card')].every(card => !card.classList.contains('flip'));
+    
+    if (allFlipped) {
+        clearInterval(matchTimer); // 停止配對計時器
+        document.getElementById('timer').style.display = 'none'; // 隱藏倒計時顯示
+        document.getElementById('completionTime').style.display = 'none'; // 隱藏配對計時顯示
+
+        const endTime = new Date();
+        const elapsed = (endTime - startTime) / 1000; // 計算完成時間
+
+        // 彈出恭喜訊息並顯示完成時間
+        setTimeout(() => {
+            alert(`恭喜你完成遊戲！總耗時：${elapsed.toFixed(2)} 秒\n配對耗時：${totalMatchTime} 秒`);
+        }, 300);  // 使用setTimeout確保訊息在視覺上稍後顯示
+    }
+}
+
+
+function endGame() {
+    clearInterval(matchTimer); // 停止配對計時器
+    const endTime = new Date();
+    const elapsed = (endTime - startTime) / 1000; // 計算耗時（秒）
+    document.getElementById('completionTime').textContent = `總耗時：${elapsed.toFixed(2)} 秒`;
+    alert(`恭喜你完成遊戲！總耗時：${elapsed.toFixed(2)} 秒\n配對耗時：${totalMatchTime} 秒`);
+}
+
+
+function disableCards() {
+    firstCard.removeEventListener('click', flipCard);
+    secondCard.removeEventListener('click', flipCard);
+
+    resetBoard();
+    
+    checkAllCardsFlipped(); // 檢查所有卡片是否翻到正面
+}
+
+function unflipCards() {
+    setTimeout(() => {
+        firstCard.classList.add('flip');
+        secondCard.classList.add('flip');
+
+        resetBoard();
+    }, 300);
+
+    checkAllCardsFlipped(); // 檢查所有卡片是否翻到正面
+}
+
+        // 重置遊戲板狀態的函數
+        function resetBoard() {
+            [firstCard, secondCard] = [null, null]; // 重置已翻開的卡片
+            lockBoard = false; // 解鎖遊戲板
+        }
+
+// 倒計時函數
+function startCountdown(selectedCountdownTime) {
+    clearInterval(countdown); // 清除之前的計時器
+    let timer = selectedCountdownTime; // 根據傳遞的倒數時間設置計時器
+
+    const timerDisplay = document.getElementById('timer');
+    timerDisplay.textContent = `倒計時：${timer} 秒`;
+
+    countdown = setInterval(() => {
+        timer--;
+        timerDisplay.textContent = `倒計時：${timer} 秒`;
+
+        // 時間到後翻轉所有卡片
+        if (timer === 0) {
+            clearInterval(countdown);
+            flipAllCards();
+            timerDisplay.textContent = ''; // 清除顯示
+            
+            // 在卡片翻轉完成後開始配對計時器
+            setTimeout(startMatchTimer, 300); // 確保卡片翻轉回背面後再啟動配對計時器
+        }
+    }, 1000);
+}
+
+// 開始計算配對時間的計時器
+function startMatchTimer() {
+    matchStartTime = new Date(); // 記錄配對開始的時間
+    matchTimer = setInterval(() => {
+        const currentTime = new Date();
+        totalMatchTime = Math.floor((currentTime - matchStartTime) / 1000); // 計算經過的時間（秒）
+        document.getElementById('completionTime').textContent = `配對時間：${totalMatchTime} 秒`; // 更新配對時間顯示
+    }, 1000);
+}
+
+    
+        // 翻轉所有卡片到背面
+        function flipAllCards() {
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.classList.add('flip');
+            });
+        }
+
+        // 結束遊戲並顯示總耗時
+        function endGame() {
+    clearInterval(matchTimer); // 停止配對計時器
+    clearInterval(gameTimer);  // 停止遊戲計時器（可移除，視需求）
+    const endTime = new Date();
+    const elapsed = (endTime - startTime) / 1000; // 計算耗時（秒）
+    document.getElementById('completionTime').textContent = `總耗時：${elapsed.toFixed(2)} 秒`;
+    alert(`恭喜你完成遊戲！總耗時：${elapsed.toFixed(2)} 秒`);
+}
+
+        // 切換圖片組別的事件
+        document.getElementById('switchGroupSelect').addEventListener('change', (event) => {
+            const selectedGroup = event.target.value;
+            currentGroup = selectedGroup === 'group1' ? group1 : group2;
+            createCards(currentGroup); // 根據選擇的組別生成卡片
+        });
+
+// 開始遊戲按鈕事件
+document.getElementById('startButton').addEventListener('click', () => {
+    const countdownSelect = document.getElementById('countdownSelect');
+    const selectedCountdownTime = countdownSelect.value;
+    const gameSizeSelect = document.getElementById('gameSizeSelect');
+    const selectedGameSize = gameSizeSelect.value; // 獲取選擇的遊戲大小
+
+    // 檢查是否已選擇倒數秒數
+    if (!selectedCountdownTime) {
+        alert('請先選擇倒數秒數！');
+        return;
+    }
+
+    // 如果選擇了秒數，則開始遊戲
+    createCards(currentGroup, selectedGameSize); // 傳入選擇的組別和遊戲大小
+    startCountdown(selectedCountdownTime); // 傳入選擇的秒數，開始倒數計時
+});
+ // 點擊全部翻到正面按鈕
+        document.getElementById('showFrontButton').addEventListener('click', () => {
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.classList.remove('flip'); // 翻轉到正面
+            });
+        });
+
+        // 點擊全部翻到背面按鈕
+        document.getElementById('showBackButton').addEventListener('click', () => {
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.classList.add('flip'); // 翻轉到背面
+            });
+        });
+    </script>
+</body>
+</html>

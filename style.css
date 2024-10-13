@@ -1,0 +1,107 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #f0f0f0;
+}
+
+.grid-container {
+    display: grid;
+    gap: 5px; /* 卡片之間的間距 */
+    margin: 20px auto;
+    max-width: 800px;
+}
+
+/* 2x2 時的樣式 */
+.grid-container[data-size="2"] {
+    grid-template-columns: repeat(2, 1fr); /* 設置為兩列 */
+}
+
+/* 4x4 時的樣式 */
+.grid-container[data-size="4"] {
+    grid-template-columns: repeat(4, 1fr); /* 設置為四列 */
+}
+
+/* 6x6 時的樣式 */
+.grid-container[data-size="6"] {
+    grid-template-columns: repeat(6, 1fr); /* 設置為六列 */
+}
+
+.card-container {
+    width: 100%; /* 確保卡片容器寬度為100% */
+    aspect-ratio: 1; /* 保持卡片的比例，確保為正方形 */
+    position: relative; /* 使絕對定位的子元素相對於這個容器 */
+    overflow: hidden; /* 防止內容超出邊界 */
+}
+
+.card-container {
+    perspective: 1000px;
+}
+
+.card {
+    width: 100px;
+    height: 140px;
+    position: relative;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    transition: transform 0.3s;
+}
+
+.card.flip {
+    transform: rotateY(180deg);
+}
+
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.card-front {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #fff;
+}
+
+.card-back {
+    transform: rotateY(180deg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #4CAF50;
+}
+
+/* 新增的圖片樣式 */
+.card-front img, .card-back img {
+    max-width: 80%;  /* 設定最大寬度為卡片的 80% */
+    max-height: 80%; /* 設定最大高度為卡片的 80% */
+}
+
+.control-button {
+    margin: 10px;
+    padding: 10px 20px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.control-button:hover {
+    background-color: #0056b3;
+}
+
+.start-button-container {
+    margin: 20px;
+}
+
+.control-buttons {
+    justify-content: center;
+    display: flex;
+}
+.hidden {
+    display: none; /* 隱藏的卡片 */
+}
